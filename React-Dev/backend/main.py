@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import logging
+from output.processing import pipeline
 
 logging.basicConfig(level=logging.INFO)
 logging.info("Starting FastAPI application...")
@@ -28,15 +29,19 @@ async def process_file(file: UploadFile, name: str = Form(...)):
     try:
         logging.info(f"Received file: {file.filename} with name: {name}")
         
-        content = await file.read()
-        output_path = os.path.join(UPLOAD_DIR, f"{name}_processed.txt")
+        ## Save the uploaded file first
+        file_path = os.path.join(UPLOAD_DIR, f"{name}.pdf")
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
 
-        with open(output_path, "w") as f:
-            f.write(f"Processed for {name}\n")
-            f.write(content.decode())
+        # Run the pipeline
+        df = pipeline(file_path)
 
-        logging.info(f"File saved to: {output_path}")
-        return {"download_url": f"/download/{name}_processed.txt"}
+        if not df.empty:
+            output_path = os.path.join(UPLOAD_DIR, f"{name}_processed.csv")
+            df.to_csv(output_path, index=False)
+            logging.info(f"File saved to: {output_path}")
+            return {"download_url": f"/download/{name}_processed.csv"}
     
     except Exception as e:
         logging.error(f"Error while processing file: {e}")
