@@ -2,3 +2,8 @@ fastapi
 uvicorn
 pandas
 python-multipart
+PyMuPDF
+python-dotenv
+google-generativeai
+pytesseract
+Pillow
